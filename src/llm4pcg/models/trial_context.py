@@ -54,6 +54,15 @@ class TrialContext:
 
     def get_local_model_base_url(self):
         return self.__local_model_base_url
+    
+
+    def set_seed(self, seed: int):
+        self.__seed = seed
+
+    def get_seed(self) -> int:
+        return getattr(self, "_TrialContext__seed", 42)  
+ 
+
 
     def __str__(self):
         return (f"TrialContext(team_name={self.__team_name}, "

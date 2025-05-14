@@ -13,8 +13,9 @@ from .models.trial_loop import TrialLoop
 from .utils import log
 
 
+
 def run_evaluation(team_name: str, fn: Type[TrialLoop], num_trials=10,
-                   characters: list[str] = None, model_name=None, local_model_base_url=None):
+                   characters: list[str] = None, model_name=None, local_model_base_url=None, master_seed=42):
     """
     Run a trial for each character in the alphabet for a given team.
     :param team_name: team name
@@ -51,6 +52,7 @@ def run_evaluation(team_name: str, fn: Type[TrialLoop], num_trials=10,
 
     for character in characters:
         log(log_file, f"Running trials for character {character} for team {team_name}")
+        
 
         character_path = output_path / character
         Path.mkdir(character_path, exist_ok=True)
@@ -58,11 +60,15 @@ def run_evaluation(team_name: str, fn: Type[TrialLoop], num_trials=10,
         for trial_number in range(1, num_trials + 1):
             log(log_file,
                 f"Running trial {trial_number} for character {character} for team {team_name}")
+            sub_seed = hash(f"{master_seed}_{character}_{trial_number}") % (2**32)
             ctx = TrialContext(team_name, character, trial_number, log_file, model_name, local_model_base_url)
+            ctx.set_seed(sub_seed)
             if (ctx.get_output_file_path()).exists():
                 log(log_file,
                     f"Trial {trial_number} for character {character} for team {team_name} already exists. Skipping.")
                 continue
+            
+            
 
             __run_trial(ctx, fn)
 
@@ -98,7 +104,8 @@ def chat_with_llm(ctx: TrialContext,
     :return: response
     """
     temperature = 1
-    seed = 42
+    seed = ctx.get_seed() if hasattr(ctx, "get_seed") else 42
+
     max_time = 120
     token_limit = 25000
     log_file_path = ctx.get_log_file_path()
